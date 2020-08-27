@@ -2,8 +2,7 @@ import tempfile
 from pathlib import Path
 import logging
 
-# import os
-from os import linesep
+linesep = '\n'
 from typing import List
 from html import escape
 from string import punctuation
@@ -52,7 +51,7 @@ class MarkdownGenerator:
         header_data_array=None,
         header_index=None,
         document_data_array=None,
-        enable_write=True,
+        enable_write=False,
         enable_TOC=True,
         logger=None,
     ):
@@ -165,72 +164,11 @@ class MarkdownGenerator:
         now write all at once into the file.
 
         """
-        self.genFootNotes()
-        if self.enable_TOC:
-            self.genTableOfContent()
+
         # Everything will be written at once into the file
         if not self.enable_write:
             self.document.writelines(self.document_data_array)
         self.document.close()
-
-    def genFootNotes(self, genHeader=False):
-        """
-        Method for adding footnotes into the end of file.
-        """
-        if self.pending_footnote_references:
-            # if genHeader:
-            self.addHeader(3, "Footnotes")
-            for footnote in self.pending_footnote_references:
-                self.writeTextLine(footnote)
-
-        if self.unfinished_details_summary_count.get("value") > 0:
-            self.logger.warning("Some of the detail blocks is not properly closed!!!")
-
-    def genTableOfContent(self, linenumber=TABLE_OF_CONTENT_LINE_POSITION, max_depth=3):
-        """
-        Method for creating table of contents.
-        """
-        tableofcontents = []  # test_logger.debug(f"Expected: '{expected_output}'")
-        # test_logger.debug(f"Generated '{generated_output}'")
-        tableofcontents.append(f"### Table of Contents  {linesep}")
-        prevLevel = 0
-        padding = "  "
-        footnote = None
-        footnoteLevel = 2
-        for header in self.header_info:
-            name = header.get("headerName")
-            level = header.get("headerLevel")
-            href = header.get("headerHref")
-            if name and level and href:
-                if name == "Footnotes":
-                    footnote = header
-                    continue
-                # Too big indent change from high level to low level
-                # does not work in unordered list. Amount reduced
-                # Line collapses to previous lane otherwise
-                if level <= max_depth:
-                    if prevLevel != 0 and prevLevel - level < -2:
-                        level = prevLevel + 2
-
-                    tableofcontents.append(
-                        f"{level * padding}* {self.generateHrefNotation(name, href)}{linesep}"
-                    )
-                prevLevel = level
-        # Footnote should be last one.
-        if footnote:
-            tableofcontents.append(
-                f'{footnoteLevel * padding}* {self.generateHrefNotation(footnote.get("headerName"), footnote.get("headerHref"))}{linesep}'
-            )
-        tableofcontents.append(f"  {linesep}")
-        self.document_data_array = (
-            self.document_data_array[: linenumber - 1]
-            + tableofcontents
-            + self.document_data_array[linenumber - 1 :]
-        )
-        if self.enable_write:
-            self.document.close()
-            self.document = open(self.file, "w")
-            self.document.writelines(self.document_data_array)
 
     def writeText(self, text, html_escape: bool = True):
         """
@@ -280,67 +218,6 @@ class MarkdownGenerator:
         self.document_data_array.append(str(text) + "  " + linesep)
         if self.enable_write:
             self.document.write(str(text) + "  " + linesep)
-
-    def writeAttributeValuePairLine(self, key_value_pair: tuple, total_padding=30):
-
-        if len(key_value_pair) == 2:
-            required_padding = total_padding - len(key_value_pair[0])
-            self.logger.debug(
-                f"Line {key_value_pair[0]} Lenght of padding is {required_padding}"
-            )
-            self.writeTextLine(
-                f"{self.addBoldedAndItalicizedText(key_value_pair[0])}{HTML_SPACE*required_padding}{key_value_pair[1]}"
-            )
-        else:
-            self.logger.error("Not valid key value pair, when writing padded line.")
-            return
-
-    def addHeader(self, level: int, text):
-        """
-        Standard Markdown
-
-        Method for adding named headers for the document.
-        See: https://docs.gitlab.com/ee/user/markdown.html#headers
-
-
-        :param level: The level of header, from 1 to 6
-        :param text: The text for header
-        """
-        # NOTE Currently non-unique header names are not handled
-
-        # Text for lowercase, remove punctuation, replace whitespace with dashesh
-        anchor = "#" + text.lower().translate(
-            str.maketrans("", "", punctuation.replace("-", ""))
-        ).replace(" ", "-")
-
-        self.header_index += 1
-        header = {
-            "headerName": escape(text),
-            "headerLevel": level,
-            "headerHref": anchor,
-            "headerID": self.header_index,
-        }
-
-        if level <= MAX_HEADER_LEVEL and level >= MIN_HEADER_LEVEL:
-            # Add empty line before header unless it's level is 1 (default MIN) and it's first header
-            if level != MIN_HEADER_LEVEL or self.header_index != 1:
-                self.writeTextLine()
-            self.writeTextLine(f"{level * HEADER} {text}")
-        elif level < MIN_HEADER_LEVEL:
-            self.logger.warning(
-                "Header level below minimum value, using minimum value."
-            )
-            header["headerLevel"] = MIN_HEADER_LEVEL
-            self.writeTextLine(f"{MIN_HEADER_LEVEL * HEADER} {text}")
-        else:
-            self.logger.warning("Header level out of scope, using max value.")
-            header["headerLevel"] = MAX_HEADER_LEVEL
-            # Add empty line before header unless it's level is 1 (default MIN)
-            self.writeTextLine()
-            self.writeTextLine(f"{MAX_HEADER_LEVEL * HEADER} {text}")
-
-        self.header_info.append(header)
-        # self.logger.debug(f"Adding header {header}")
 
     """
     Emphasis, aka italics, bold or strikethrough.
@@ -399,27 +276,6 @@ class MarkdownGenerator:
         if write_as_line:
             self.writeTextLine(bolded_italicized)
         return bolded_italicized
-
-    def addStrikethroughText(self, text, write_as_line: bool = False) -> str:
-        """
-        NOTE: Non-standard Markdown
-
-        Method for getting text strikethroughed
-        See: https://docs.gitlab.com/ee/user/markdown.html#emphasis
-        Removes leading and trailing whitespaces.
-
-        :param text: Text to be converted
-        :param write_as_line: bool, Whether the text should be written to document/buffer directly
-        :return: Strikethourghed text
-        :rtype: string
-        """
-        if self.syntax not in ["gitlab", "github"]:
-            raise AttributeError("GitLab and GitHub Markdown syntax only.")
-
-        strikethrough = f"~~{text.strip()}~~"
-        if write_as_line:
-            self.writeTextLine(strikethrough)
-        return strikethrough
 
     def generateHrefNotation(self, text, url, title=None) -> str:
         """
@@ -550,21 +406,6 @@ class MarkdownGenerator:
             html_escape=False,
         )
 
-
-    def addUnorderedList(self, iterableStringList):
-        """
-        Standard Markdown
-
-        Method from constructing unordered list. Takes list of
-        strings as argument. Each item from list going for own line.
-
-        :param iterableStringList: List of strings. Each string
-        as item in Markdown list
-        """
-        for item in iterableStringList:
-            self.writeText(f"  * {item}{linesep}")
-        self.writeTextLine()
-
     def addTable(
         self,
         header_names: List[str] = None,
@@ -637,12 +478,15 @@ class MarkdownGenerator:
             return
         # Write ending vertical bar
         self.writeTextLine(f"|")
+
         # Write dashes to separate headers
         if alignment == "left":
             self.writeTextLine("".join(["|", ":---|" * len(header_names)]))
 
         elif alignment == "center":
             self.writeTextLine("".join(["|", ":---:|" * len(header_names)]))
+            # self.__exit__()
+            # exit()
 
         elif alignment == "right":
             self.writeTextLine("".join(["|", "---:|" * len(header_names)]))
@@ -651,7 +495,6 @@ class MarkdownGenerator:
             self.writeTextLine("".join(["|", ":---:|" * len(header_names)]))
 
         # Write each row into the table
-
         if not useDictionaryList:
 
             for row in row_elements:
@@ -687,86 +530,3 @@ class MarkdownGenerator:
                         self.writeText(f"| {row.get(key)} ", html_escape)
                 self.writeTextLine(f"|")
         self.writeTextLine()
-
-    def insertDetailsAndSummary(
-        self, summary_name="Click me to collapse/fold.", escape_html=True
-    ):
-        """
-        Method for initializing Details and Summary block.
-        See: https://docs.gitlab.com/ee/user/markdown.html#details-and-summary
-
-
-        """
-        self.writeTextLine("<details>", html_escape=False)
-
-        # Whether the summary name is html escaped or not
-        if escape_html:
-            self.writeTextLine(
-                f"<summary>{escape(summary_name)}</summary>", html_escape=False
-            )
-        else:
-            # Makes bolding possible for summary name with HTML
-            self.writeTextLine(f"<summary>{summary_name}</summary>", html_escape=False)
-        self.writeTextLine()
-        self.unfinished_details_summary_count["value"] += 1
-
-    def endDetailsAndSummary(self):
-        """
-        Ends details and summary block.
-        """
-        self.writeTextLine()
-        self.writeTextLine("</details>", html_escape=False)
-        self.unfinished_details_summary_count["value"] -= 1
-
-    def addFootNote(self, text, footnote, write=True):
-        """
-        Standard Markdown
-
-        Placement of footnote reference id should be placed
-        with brackets by default, as: [footnote_id], whereas the footnote_id is string
-        footnote_id. Actual ID will be generated automatically.
-
-        NOTE: Text is written by default. To get generated footnote block as return value,
-    set 'write=False'.
-
-        Method for inserting footnote into the document.
-
-        :param text: Text to be written on document and wherethe footnote id is inserted.
-        :param write: Defines if footnote should be written immmedially into the document.
-        Same as to use 'writeTextLine' for return value when set False.
-
-        :return: returns formatted text input
-        """
-
-        # Prevent duplicate footnotes
-        # This might happen for examle if footnote is somehow in collection of
-        # dictionaries, in part of value names
-        # And this list is used to generated table
-        already_in_list = False
-        for footnote_d in self.pending_footnote_references:
-            if footnote in footnote_d:
-                already_in_list = True
-        if not already_in_list:
-            # Append footnote into the list, which will be written in the end.
-            self.footnote_index["value"] += 1
-            self.pending_footnote_references.append(
-                f"[^{self.footnote_index.get('value')}]: {footnote}{linesep}"
-            )
-        else:
-            self.logger.debug(
-                f"Trying to add duplicate footnote '{footnote}'. Skipping."
-            )
-
-        # FOOTNOTE IDENTIFIER is string which is replaced with actual reference
-        # See source of import (syntax.py)
-        # Default should be '[footnote_id]'
-        text = text.replace(
-            f"{FOOTNOTE_IDENTIFIER}", f"[^{self.footnote_index.get('value')}]"
-        )
-        if write:
-            self.writeTextLine(text)
-        self.logger.debug(
-            f'Added footnote "{footnote}" with identifier {self.footnote_index}.'
-        )
-        if not write:
-            return text
