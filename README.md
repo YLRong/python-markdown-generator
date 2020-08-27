@@ -32,7 +32,7 @@ Python 3.7+ is required.
 
 You can install latest version from the GitHub by using pip:
 ```shell
-pip3 install git+https://github.com/Nicceboy/python-markdown-generator
+pip3 install git+https://github.com/YLRong/python-markdown-generator/
 ```
 
 ## Quick usage
