@@ -7,7 +7,7 @@ from os import linesep
 from typing import List
 from html import escape
 from string import punctuation
-from .config.syntax import (
+from .syntax import (
     MARKDOWN_HEADER as HEADER,
     HTML_SPACE,
     MARKDOWN_HORIZONTAL_RULE as HORIZONTAL_RULE,
@@ -17,7 +17,7 @@ from .config.syntax import (
     MARKDOWN_INLINE_CODE_HL as INLINE_CODE_HIGHLIGHT,
     FOOTNOTE_IDENTIFIER,
 )
-from .config.conf import (
+from .conf import (
     DEFAULT_FILE_LOCATION,
     MAX_HEADER_LEVEL,
     MIN_HEADER_LEVEL,
