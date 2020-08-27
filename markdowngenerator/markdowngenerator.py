@@ -170,7 +170,7 @@ class MarkdownGenerator:
             self.document.writelines(self.document_data_array)
         self.document.close()
 
-    def writeText(self, text, html_escape: bool = True):
+    def writeText(self, text, html_escape: bool = False):
         """
         Method for writing arbitrary text into the document file,
         or just adding data into document data structure for easier manipulation.
@@ -189,7 +189,7 @@ class MarkdownGenerator:
         if self.enable_write:
             self.document.write(str(text))
 
-    def writeTextLine(self, text=None, html_escape: bool = True):
+    def writeTextLine(self, text=None, html_escape: bool = False):
         """
         Write arbitrary text into the document file and add new line,
         or just adding data with new line into document data structure for easier manipulation.
@@ -412,7 +412,7 @@ class MarkdownGenerator:
         row_elements=None,
         alignment="center",
         dictionary_list=None,
-        html_escape=True,
+        html_escape=False,
         capitalize_headers=False,
     ):
         """
