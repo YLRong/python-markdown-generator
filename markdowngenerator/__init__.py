@@ -1,2 +1,2 @@
-from .markdowngenerator import *
 from .config import *
+from .markdowngenerator import *
