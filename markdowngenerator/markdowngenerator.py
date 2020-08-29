@@ -211,13 +211,13 @@ class MarkdownGenerator:
 
             return
         if html_escape:
-            self.document_data_array.append(escape(str(text)) + "  " + linesep)
+            self.document_data_array.append(escape(str(text)) + linesep)
             if self.enable_write:
-                self.document.write(escape(str(text)) + "  " + linesep)
+                self.document.write(escape(str(text)) + linesep)
             return
-        self.document_data_array.append(str(text) + "  " + linesep)
+        self.document_data_array.append(str(text) + linesep)
         if self.enable_write:
-            self.document.write(str(text) + "  " + linesep)
+            self.document.write(str(text) + linesep)
 
     """
     Emphasis, aka italics, bold or strikethrough.
